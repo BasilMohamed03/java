@@ -10,7 +10,14 @@ pipeline {
         DOCKER_REPO = "basil/java-app" // Docker Hub namespace/repo
     }
 
+    
     stages {
+        stage('Set mvnw Permission') {
+           steps {
+                sh 'chmod +x mvnw'
+            }
+        }
+
         stage("Dependency Check") {
             steps {
                 sh "./mvnw dependency-check:check"
