@@ -7,12 +7,12 @@ node("java") {
     }
 
     stage("Dependency Check") {
-        sh "./mvnw dependency-check:check"
+        sh "mvnw dependency-check:check"
         dependencyCheckPublisher pattern: 'target/dependency-check-report.xml'
     }
 
     stage("Build App") {
-        sh "./mvnw clean package -DskipTests"
+        sh "mvnw clean package -DskipTests"
     }
 
     stage("Archive App") {
