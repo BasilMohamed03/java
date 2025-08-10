@@ -1,53 +1,52 @@
 pipeline {
-    agent { label "java" }
+    agent any
+
+    environment {
+        DOCKER_REPO = "basilmohamed/java-app" 
+    }
 
     tools {
         maven 'mvn-3-5-4'
-        jdk 'java-11'
+        jdk 'java-17'
     }
 
-    environment {
-        DOCKER_REPO = "basil/java-app" // Docker Hub namespace/repo
-    }
-
-    
     stages {
-        stage('Set mvnw Permission') {
-           steps {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Fix mvnw Permissions') {
+            steps {
                 sh 'chmod +x mvnw'
             }
         }
 
-        stage("Dependency Check") {
+        stage('Dependency Check') {
             steps {
-                sh 'mvn clean package'
-                dependencyCheckPublisher pattern: 'target/dependency-check-report.xml'
+                sh './mvnw dependency-check:check'
             }
         }
 
-        stage("Build App") {
+        stage('Build App') {
             steps {
-                sh "./mvnw clean package -DskipTests"
+                sh './mvnw clean package'
             }
         }
 
-        stage("Archive App") {
+        stage('Archive App') {
             steps {
-                archiveArtifacts artifacts: '**/*.jar', followSymlinks: false
+                archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true
             }
         }
 
-        stage("Docker Build & Push") {
+        stage('Docker Build & Push') {
             steps {
-                script {
-                    sh "docker build -t ${DOCKER_REPO}:v${BUILD_NUMBER} ."
-                    sh "docker tag ${DOCKER_REPO}:v${BUILD_NUMBER} ${DOCKER_REPO}:latest"
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DH_USER', passwordVariable: 'DH_PASS')]) {
-                        sh "echo ${DH_PASS} | docker login -u ${DH_USER} --password-stdin"
-                        sh "docker push ${DOCKER_REPO}:v${BUILD_NUMBER}"
-                        sh "docker push ${DOCKER_REPO}:latest"
-                        sh "docker logout"
-                    }
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DH_USER', passwordVariable: 'DH_PASS')]) {
+                    sh "echo ${DH_PASS} | docker login -u ${DH_USER} --password-stdin"
+                    sh "docker build -t ${DOCKER_REPO}:latest ."
+                    sh "docker push ${DOCKER_REPO}:latest"
                 }
             }
         }
