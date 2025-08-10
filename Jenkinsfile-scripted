@@ -3,16 +3,14 @@ node {
         checkout scm
     }
 
-    stage('Fix mvnw Permissions') {
-        sh 'chmod +x mvnw'
-    }
-
     stage('Dependency Check') {
-        sh './mvnw dependency-check:check'
+        def mvnHome = tool name: 'mvn-3-5-4', type: 'hudson.tasks.Maven$MavenInstallation'
+        sh "${mvnHome}/bin/mvn dependency-check:check"
     }
 
     stage('Build App') {
-        sh './mvnw clean package'
+        def mvnHome = tool name: 'mvn-3-5-4', type: 'hudson.tasks.Maven$MavenInstallation'
+        sh "${mvnHome}/bin/mvn clean package"
     }
 
     stage('Archive App') {
