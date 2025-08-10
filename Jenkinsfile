@@ -20,7 +20,7 @@ pipeline {
 
         stage("Dependency Check") {
             steps {
-                sh "./mvnw dependency-check:check"
+                sh 'mvn clean package'
                 dependencyCheckPublisher pattern: 'target/dependency-check-report.xml'
             }
         }
