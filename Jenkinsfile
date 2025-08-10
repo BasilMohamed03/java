@@ -2,12 +2,12 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_REPO = "basilmohamed/java-app" 
+        DOCKER_REPO = "basilmohamed/java-app"  
     }
 
     tools {
-        maven 'mvn-3-5-4'
-        jdk 'java-17'
+        maven 'mvn-3-5-4' 
+        jdk 'java-17'    
     }
 
     stages {
@@ -25,13 +25,13 @@ pipeline {
 
         stage('Dependency Check') {
             steps {
-                sh './mvnw dependency-check:check'
+                sh 'mvn dependency-check:check'
             }
         }
 
         stage('Build App') {
             steps {
-                sh './mvnw clean package'
+                sh 'mvn clean package'
             }
         }
 
