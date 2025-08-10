@@ -1,43 +1,48 @@
-pipeline{
-    agent {
-        label "java"
-    }
-    tools{
+pipeline {
+    agent { label "java" }
+
+    tools {
         maven 'mvn-3-5-4'
         jdk 'java-11'
     }
-    environment{
-        DOCKER_USER = credentials('docker-username')
-        DOCKER_PASS = credentials('docker-password')
+
+    environment {
+        DOCKER_REPO = "basil/java-app" // Docker Hub namespace/repo
     }
-    stages{
-        stage("Dependancy check"){
-            steps{
-                sh "mvn dependency-check:check"
+
+    stages {
+        stage("Dependency Check") {
+            steps {
+                sh "./mvnw dependency-check:check"
                 dependencyCheckPublisher pattern: 'target/dependency-check-report.xml'
             }
         }
-        stage("build app"){
-            steps{
-                sh "mvn package install"
+
+        stage("Build App") {
+            steps {
+                sh "./mvnw clean package -DskipTests"
             }
         }
-        stage("archive app"){
-            steps{
+
+        stage("Archive App") {
+            steps {
                 archiveArtifacts artifacts: '**/*.jar', followSymlinks: false
             }
         }
-        stage("docker build"){
-            steps{
-                sh "docker build -t hassaneid/iti-java:v${BUILD_NUMBER} ."
-                sh "docker images"
+
+        stage("Docker Build & Push") {
+            steps {
+                script {
+                    sh "docker build -t ${DOCKER_REPO}:v${BUILD_NUMBER} ."
+                    sh "docker tag ${DOCKER_REPO}:v${BUILD_NUMBER} ${DOCKER_REPO}:latest"
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DH_USER', passwordVariable: 'DH_PASS')]) {
+                        sh "echo ${DH_PASS} | docker login -u ${DH_USER} --password-stdin"
+                        sh "docker push ${DOCKER_REPO}:v${BUILD_NUMBER}"
+                        sh "docker push ${DOCKER_REPO}:latest"
+                        sh "docker logout"
+                    }
+                }
             }
         }
-        // stage("docker push"){
-        //     steps{
-        //         sh "docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}"
-        //         sh "docker push hassaneid/iti-java:v${BUILD_NUMBER}"
-        //     }
-        // }
     }
 }

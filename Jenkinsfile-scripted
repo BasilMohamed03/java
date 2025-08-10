@@ -1,0 +1,33 @@
+node("java") {
+    def dockerRepo = "basil/java-app"
+    def buildTag = "v${env.BUILD_NUMBER}"
+
+    stage("Checkout") {
+        checkout scm
+    }
+
+    stage("Dependency Check") {
+        sh "./mvnw dependency-check:check"
+        dependencyCheckPublisher pattern: 'target/dependency-check-report.xml'
+    }
+
+    stage("Build App") {
+        sh "./mvnw clean package -DskipTests"
+    }
+
+    stage("Archive App") {
+        archiveArtifacts artifacts: '**/*.jar', followSymlinks: false
+    }
+
+    stage("Docker Build & Push") {
+        sh "docker build -t ${dockerRepo}:${buildTag} ."
+        sh "docker tag ${dockerRepo}:${buildTag} ${dockerRepo}:latest"
+
+        withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DH_USER', passwordVariable: 'DH_PASS')]) {
+            sh "echo ${DH_PASS} | docker login -u ${DH_USER} --password-stdin"
+            sh "docker push ${dockerRepo}:${buildTag}"
+            sh "docker push ${dockerRepo}:latest"
+            sh "docker logout"
+        }
+    }
+}
